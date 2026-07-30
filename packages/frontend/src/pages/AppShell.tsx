@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useServersStore } from "../store/servers.js";
+import { useBillingStore } from "../store/billing.js";
 import { ServerSidebar } from "../components/ServerSidebar.js";
 import { ChannelList } from "../components/ChannelList.js";
 import { MessageView } from "../components/MessageView.js";
@@ -9,6 +10,7 @@ import { AccountSettings } from "./AccountSettings.js";
 
 export function AppShell() {
   const load = useServersStore((s) => s.load);
+  const loadBilling = useBillingStore((s) => s.load);
   const [activeServerId, setActiveServerId] = useState<string | null>(null);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
   const [settingsServerId, setSettingsServerId] = useState<string | null>(null);
@@ -16,7 +18,8 @@ export function AppShell() {
 
   useEffect(() => {
     void load();
-  }, [load]);
+    void loadBilling();
+  }, [load, loadBilling]);
 
   function selectServer(id: string | null) {
     setActiveServerId(id);

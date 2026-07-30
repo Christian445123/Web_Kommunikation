@@ -571,3 +571,10 @@ textarea {
 .consent-checkbox a {
   color: #00aff4;
 }
+
+.char-counter {
+  text-align: right;
+  font-size: 11px;
+  color: #96989d;
+  padding: 2px 4px 0;
+}

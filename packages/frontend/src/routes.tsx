@@ -9,6 +9,7 @@ import { TermsOfService } from "./pages/TermsOfService.js";
 import { DeveloperPortal } from "./pages/developer/DeveloperPortal.js";
 import { ApplicationDetail } from "./pages/developer/ApplicationDetail.js";
 import { BotInvite } from "./pages/BotInvite.js";
+import { Billing } from "./pages/Billing.js";
 
 export function AppRoutes() {
   const status = useAuthStore((s) => s.status);
@@ -33,6 +34,8 @@ export function AppRoutes() {
       <Route path="/developer" element={status === "authenticated" ? <DeveloperPortal /> : <Navigate to="/login" replace />} />
       <Route path="/developer/:id" element={status === "authenticated" ? <ApplicationDetail /> : <Navigate to="/login" replace />} />
       <Route path="/bot-invite/:applicationId" element={status === "authenticated" ? <BotInvite /> : <Navigate to="/login" replace />} />
+      <Route path="/billing" element={status === "authenticated" ? <Billing /> : <Navigate to="/login" replace />} />
+      <Route path="/billing/success" element={status === "authenticated" ? <Billing /> : <Navigate to="/login" replace />} />
       <Route path="/" element={status === "authenticated" ? <AppShell /> : <Navigate to="/login" replace />} />
     </Routes>
   );

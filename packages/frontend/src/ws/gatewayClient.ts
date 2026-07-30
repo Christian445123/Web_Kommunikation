@@ -11,7 +11,8 @@ function toWebSocketUrl(url: string): string {
   return url;
 }
 
-const GATEWAY_URL = toWebSocketUrl(import.meta.env.VITE_GATEWAY_URL as string);
+// Same-origin default, mirroring api/client.ts's API_URL fallback.
+const GATEWAY_URL = toWebSocketUrl((import.meta.env.VITE_GATEWAY_URL as string | undefined) || `${window.location.origin}/gateway`);
 const HEARTBEAT_INTERVAL_MS = 20_000;
 const MAX_BACKOFF_MS = 15_000;
 

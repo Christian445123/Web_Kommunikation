@@ -1,4 +1,7 @@
-const API_URL = import.meta.env.VITE_API_URL as string;
+// Same-origin default: the backend serves the built frontend itself in production, so no
+// env var is needed there. VITE_API_URL only matters when frontend/backend run on different
+// origins (e.g. local dev with a separate Vite server on :5173).
+const API_URL = (import.meta.env.VITE_API_URL as string | undefined) || `${window.location.origin}/api/v1`;
 
 let accessToken: string | null = null;
 let onUnauthenticated: (() => void) | null = null;

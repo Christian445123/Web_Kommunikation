@@ -1,4 +1,6 @@
 import type {
+  BillingMeResponse,
+  BillingProvider,
   BotApplication,
   Channel,
   CreateBotApplicationInput,
@@ -79,6 +81,12 @@ export const dmsApi = {
 
 export const privacyApi = {
   exportData: () => apiFetch<Record<string, unknown>>("/privacy/export"),
+};
+
+export const billingApi = {
+  me: () => apiFetch<BillingMeResponse>("/billing/me"),
+  checkout: (provider: BillingProvider) => apiFetch<{ url: string }>("/billing/checkout", { method: "POST", body: { provider } }),
+  cancel: () => apiFetch<{ ok: true }>("/billing/cancel", { method: "POST" }),
 };
 
 export const botsApi = {

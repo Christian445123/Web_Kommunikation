@@ -24,7 +24,7 @@ export const MessageSendFrameSchema = z.object({
   op: z.literal("MESSAGE_SEND"),
   d: z.object({
     channelId: z.string().uuid(),
-    content: z.string().min(1).max(4000),
+    content: z.string().min(1).max(MAX_MESSAGE_LENGTH_CEILING),
     replyToId: z.string().uuid().nullable().optional(),
     nonce: z.string().optional(), // client-generated id for optimistic-UI reconciliation
   }),
@@ -80,6 +80,7 @@ export interface DispatchPayloadMap {
   ROLE_UPDATE: { serverId: string; role: Role };
   ROLE_DELETE: { serverId: string; roleId: string };
   USER_UPDATE: { user: User };
+  BILLING_UPDATE: { userId: string; plan: PlanTier };
 }
 
 export type DispatchEventType = keyof DispatchPayloadMap;

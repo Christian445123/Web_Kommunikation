@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMessagesStore } from "../store/messages.js";
 import { useAuthStore } from "../store/auth.js";
+import { useBillingStore } from "../store/billing.js";
 import { useUser } from "../hooks/useUser.js";
 import { ServerTagBadge } from "./ServerTagBadge.js";
 
@@ -30,6 +31,7 @@ export function MessageView({ channelId }: Props) {
   const messages = useMessagesStore((s) => (channelId ? (s.messagesByChannel[channelId] ?? []) : []));
   const sendMessage = useMessagesStore((s) => s.sendMessage);
   const notifyTyping = useMessagesStore((s) => s.notifyTyping);
+  const messageCharLimit = useBillingStore((s) => s.messageCharLimit);
   const [draft, setDraft] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
   const typingThrottleRef = useRef(0);
@@ -77,7 +79,17 @@ export function MessageView({ channelId }: Props) {
       </div>
       <TypingIndicator channelId={channelId} />
       <form className="message-input-bar" onSubmit={handleSubmit}>
-        <input placeholder="Nachricht schreiben…" value={draft} onChange={(e) => handleChange(e.target.value)} />
+        <input
+          placeholder="Nachricht schreiben…"
+          value={draft}
+          maxLength={messageCharLimit}
+          onChange={(e) => handleChange(e.target.value)}
+        />
+        {draft.length > messageCharLimit * 0.8 && (
+          <div className="char-counter">
+            {draft.length} / {messageCharLimit}
+          </div>
+        )}
       </form>
     </div>
   );

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/auth.js";
 import { useServersStore } from "../store/servers.js";
+import { useBillingStore } from "../store/billing.js";
 import { privacyApi, usersApi } from "../api/resources.js";
 
 interface Props {
@@ -13,6 +14,7 @@ export function AccountSettings({ onClose }: Props) {
   const updateProfile = useAuthStore((s) => s.updateProfile);
   const logout = useAuthStore((s) => s.logout);
   const servers = useServersStore((s) => s.servers);
+  const plan = useBillingStore((s) => s.plan);
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState(user?.displayName ?? "");
   const [showcasedServerId, setShowcasedServerId] = useState(user?.showcasedServerId ?? "");
@@ -90,6 +92,20 @@ export function AccountSettings({ onClose }: Props) {
           {error && <div className="auth-error">{error}</div>}
           <button className="save-button" onClick={handleSave} disabled={saving}>
             Speichern
+          </button>
+
+          <h2 style={{ marginTop: 32 }}>Plan</h2>
+          <p style={{ color: "#96989d" }}>
+            Aktuell: <strong>{plan === "supporter" ? "Supporter" : "Free"}</strong>
+          </p>
+          <button
+            className="save-button"
+            onClick={() => {
+              onClose();
+              navigate("/billing");
+            }}
+          >
+            Plan verwalten
           </button>
 
           <h2 style={{ marginTop: 32 }}>Entwickler</h2>

@@ -3,7 +3,8 @@ import { and, desc, eq, isNull, lt } from "drizzle-orm";
 import type { Message, MessagePageQuery } from "@nythera/shared";
 import { db } from "../../db/client.js";
 import { messages } from "../../db/schema/index.js";
-import { Forbidden, NotFound } from "../../lib/errors.js";
+import { BadRequest, Forbidden, NotFound } from "../../lib/errors.js";
+import { getMessageCharLimit, getUserPlan } from "../billing/service.js";
 
 type MessageRow = typeof messages.$inferSelect;
 
@@ -42,7 +43,21 @@ export async function listChannelMessages(channelId: string, query: MessagePageQ
   return rows.map(mapMessage);
 }
 
+/**
+ * The only entitlement billing ever grants: a higher per-message character limit. Every
+ * message-write path (REST and the gateway's MESSAGE_SEND) funnels through createMessage/
+ * updateMessage, so this is the single place that check needs to live.
+ */
+async function assertWithinCharLimit(authorId: string, content: string): Promise<void> {
+  const plan = await getUserPlan(authorId);
+  const limit = getMessageCharLimit(plan);
+  if (content.length > limit) {
+    throw BadRequest(`Message exceeds the ${limit}-character limit for your plan`);
+  }
+}
+
 export async function createMessage(channelId: string, authorId: string, content: string, replyToId?: string | null): Promise<Message> {
+  await assertWithinCharLimit(authorId, content);
   const id = randomUUID();
   const createdAt = new Date();
   await db.insert(messages).values({ id, channelId, authorId, content, replyToId: replyToId ?? null, createdAt });
@@ -64,6 +79,7 @@ export async function updateMessage(messageId: string, authorId: string, content
   const [existing] = await db.select().from(messages).where(eq(messages.id, messageId)).limit(1);
   if (!existing || existing.deletedAt) throw NotFound("Message not found");
   if (existing.authorId !== authorId) throw Forbidden("Cannot edit another user's message");
+  await assertWithinCharLimit(authorId, content);
 
   await db.update(messages).set({ content, editedAt: new Date() }).where(eq(messages.id, messageId));
   const [row] = await db.select().from(messages).where(eq(messages.id, messageId)).limit(1);
