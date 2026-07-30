@@ -95,7 +95,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 4. Install deps, build, migrate
+# 4. Install deps, migrate, build
 # ---------------------------------------------------------------------------
 info "Installing dependencies"
 pnpm install --frozen-lockfile

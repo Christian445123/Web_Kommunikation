@@ -32,5 +32,5 @@ export const billingWebhookEvents = mysqlTable(
     receivedAt: timestamp("received_at").notNull().defaultNow(),
     processedAt: timestamp("processed_at"),
   },
-  (t) => [unique("billing_webhook_events_provider_event_unique").on(t.provider, t.externalEventId)],
+  (t) => ({ providerEventUnique: unique("billing_webhook_events_provider_event_unique").on(t.provider, t.externalEventId) }),
 );

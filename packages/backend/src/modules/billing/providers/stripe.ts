@@ -24,6 +24,16 @@ function mapStatus(status: Stripe.Subscription.Status): NormalizedBillingEvent["
   }
 }
 
+// Stripe has moved current_period_end between Subscription and SubscriptionItem across API
+// versions - read it defensively from whichever shape the resolved SDK/API version actually
+// has, rather than pinning to one exact (and version-fragile) TypeScript type.
+function extractCurrentPeriodEnd(subscription: Stripe.Subscription): Date | null {
+  const item = subscription.items.data[0] as unknown as { current_period_end?: number } | undefined;
+  const subscriptionLevel = subscription as unknown as { current_period_end?: number };
+  const raw = item?.current_period_end ?? subscriptionLevel.current_period_end;
+  return raw ? new Date(raw * 1000) : null;
+}
+
 async function normalizeFromSubscription(
   stripe: Stripe,
   subscription: Stripe.Subscription,
@@ -38,7 +48,6 @@ async function normalizeFromSubscription(
     userId = sessions.data[0]?.client_reference_id ?? null;
   }
 
-  const item = subscription.items.data[0];
   return {
     externalEventId,
     provider: "stripe",
@@ -46,7 +55,7 @@ async function normalizeFromSubscription(
     providerCustomerId: customerId,
     providerSubscriptionId: subscription.id,
     status: mapStatus(subscription.status),
-    currentPeriodEnd: item ? new Date(item.current_period_end * 1000) : null,
+    currentPeriodEnd: extractCurrentPeriodEnd(subscription),
     cancelAtPeriodEnd: subscription.cancel_at_period_end,
   };
 }

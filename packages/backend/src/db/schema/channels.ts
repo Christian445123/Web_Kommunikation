@@ -26,7 +26,7 @@ export const channelPermissionOverwrites = mysqlTable(
     allow: bigint("allow", { mode: "bigint" }).notNull().default(0n),
     deny: bigint("deny", { mode: "bigint" }).notNull().default(0n),
   },
-  (t) => [primaryKey({ columns: [t.channelId, t.targetType, t.targetId] })],
+  (t) => ({ pk: primaryKey({ columns: [t.channelId, t.targetType, t.targetId] }) }),
 );
 
 export const dmParticipants = mysqlTable(
@@ -39,5 +39,5 @@ export const dmParticipants = mysqlTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
   },
-  (t) => [primaryKey({ columns: [t.channelId, t.userId] })],
+  (t) => ({ pk: primaryKey({ columns: [t.channelId, t.userId] }) }),
 );

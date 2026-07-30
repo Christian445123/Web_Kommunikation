@@ -29,11 +29,11 @@ export const memberRoles = mysqlTable(
       .notNull()
       .references(() => roles.id, { onDelete: "cascade" }),
   },
-  (t) => [
-    primaryKey({ columns: [t.serverId, t.userId, t.roleId] }),
-    foreignKey({
+  (t) => ({
+    pk: primaryKey({ columns: [t.serverId, t.userId, t.roleId] }),
+    memberFk: foreignKey({
       columns: [t.serverId, t.userId],
       foreignColumns: [serverMembers.serverId, serverMembers.userId],
     }).onDelete("cascade"),
-  ],
+  }),
 );

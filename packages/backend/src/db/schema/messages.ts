@@ -22,5 +22,5 @@ export const messages = mysqlTable(
     deletedAt: timestamp("deleted_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
-  (t) => [index("messages_channel_created_idx").on(t.channelId, t.createdAt)],
+  (t) => ({ channelCreatedIdx: index("messages_channel_created_idx").on(t.channelId, t.createdAt) }),
 );

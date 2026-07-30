@@ -28,7 +28,7 @@ export const serverMembers = mysqlTable(
     nickname: varchar("nickname", { length: 64 }),
     joinedAt: timestamp("joined_at").notNull().defaultNow(),
   },
-  (t) => [primaryKey({ columns: [t.serverId, t.userId] })],
+  (t) => ({ pk: primaryKey({ columns: [t.serverId, t.userId] }) }),
 );
 
 export const invites = mysqlTable("invites", {
