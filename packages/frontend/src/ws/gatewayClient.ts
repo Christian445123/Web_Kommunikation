@@ -3,7 +3,15 @@ import { getAccessToken } from "../api/client.js";
 
 type Listener<K extends DispatchEventType> = (payload: DispatchPayloadMap[K]) => void;
 
-const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL as string;
+// Tolerates VITE_GATEWAY_URL being given as http(s):// (e.g. copied from an API URL) by
+// normalizing it to the ws(s):// scheme the WebSocket constructor actually requires.
+function toWebSocketUrl(url: string): string {
+  if (url.startsWith("https://")) return `wss://${url.slice("https://".length)}`;
+  if (url.startsWith("http://")) return `ws://${url.slice("http://".length)}`;
+  return url;
+}
+
+const GATEWAY_URL = toWebSocketUrl(import.meta.env.VITE_GATEWAY_URL as string);
 const HEARTBEAT_INTERVAL_MS = 20_000;
 const MAX_BACKOFF_MS = 15_000;
 

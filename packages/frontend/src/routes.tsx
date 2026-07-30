@@ -6,6 +6,9 @@ import { Register } from "./pages/Register.js";
 import { AppShell } from "./pages/AppShell.js";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy.js";
 import { TermsOfService } from "./pages/TermsOfService.js";
+import { DeveloperPortal } from "./pages/developer/DeveloperPortal.js";
+import { ApplicationDetail } from "./pages/developer/ApplicationDetail.js";
+import { BotInvite } from "./pages/BotInvite.js";
 
 export function AppRoutes() {
   const status = useAuthStore((s) => s.status);
@@ -27,6 +30,9 @@ export function AppRoutes() {
       <Route path="/register" element={status === "authenticated" ? <Navigate to="/" replace /> : <Register />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/terms" element={<TermsOfService />} />
+      <Route path="/developer" element={status === "authenticated" ? <DeveloperPortal /> : <Navigate to="/login" replace />} />
+      <Route path="/developer/:id" element={status === "authenticated" ? <ApplicationDetail /> : <Navigate to="/login" replace />} />
+      <Route path="/bot-invite/:applicationId" element={status === "authenticated" ? <BotInvite /> : <Navigate to="/login" replace />} />
       <Route path="/" element={status === "authenticated" ? <AppShell /> : <Navigate to="/login" replace />} />
     </Routes>
   );

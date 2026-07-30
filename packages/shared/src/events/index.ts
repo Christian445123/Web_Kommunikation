@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Channel, Message, Role, Server, ServerMember, User } from "../types/index.js";
+import { MAX_MESSAGE_LENGTH_CEILING, type PlanTier } from "../billing/index.js";
 
 /**
  * Gateway wire protocol. Envelope shape is shared by both directions;

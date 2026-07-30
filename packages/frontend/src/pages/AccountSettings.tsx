@@ -92,6 +92,18 @@ export function AccountSettings({ onClose }: Props) {
             Speichern
           </button>
 
+          <h2 style={{ marginTop: 32 }}>Entwickler</h2>
+          <p style={{ color: "#96989d" }}>Erstelle Bots und verwalte deine Developer-Applications.</p>
+          <button
+            className="save-button"
+            onClick={() => {
+              onClose();
+              navigate("/developer");
+            }}
+          >
+            Developer Portal öffnen
+          </button>
+
           <h2 style={{ marginTop: 32 }}>Meine Daten</h2>
           <p style={{ color: "#96989d" }}>Lade eine vollständige, maschinenlesbare Kopie deiner bei Nythera gespeicherten Daten herunter.</p>
           <button className="save-button" onClick={handleExportData}>

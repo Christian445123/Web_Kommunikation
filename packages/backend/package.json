@@ -15,6 +15,7 @@
     "@fastify/cookie": "^11.0.1",
     "@fastify/cors": "^10.0.1",
     "@fastify/sensible": "^6.0.1",
+    "@fastify/static": "^8.0.2",
     "@fastify/websocket": "^11.0.1",
     "@nythera/shared": "workspace:*",
     "@node-rs/argon2": "^2.0.2",

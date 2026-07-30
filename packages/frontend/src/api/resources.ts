@@ -1,5 +1,7 @@
 import type {
+  BotApplication,
   Channel,
+  CreateBotApplicationInput,
   CreateChannelInput,
   CreateRoleInput,
   CreateServerInput,
@@ -77,4 +79,14 @@ export const dmsApi = {
 
 export const privacyApi = {
   exportData: () => apiFetch<Record<string, unknown>>("/privacy/export"),
+};
+
+export const botsApi = {
+  list: () => apiFetch<BotApplication[]>("/developer/applications"),
+  get: (id: string) => apiFetch<BotApplication>(`/developer/applications/${id}`),
+  create: (input: CreateBotApplicationInput) =>
+    apiFetch<{ application: BotApplication; token: string }>("/developer/applications", { method: "POST", body: input }),
+  regenerateToken: (id: string) => apiFetch<{ token: string }>(`/developer/applications/${id}/token/regenerate`, { method: "POST" }),
+  invite: (id: string, serverId: string, permissions: string) =>
+    apiFetch<{ ok: true }>(`/developer/applications/${id}/invite`, { method: "POST", body: { serverId, permissions } }),
 };
