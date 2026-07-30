@@ -1,41 +1,46 @@
-import { pgTable, uuid, text, timestamp, primaryKey, integer } from "drizzle-orm/pg-core";
+import { mysqlTable, varchar, text, timestamp, primaryKey, int } from "drizzle-orm/mysql-core";
 import { users } from "./users.js";
 
-export const servers = pgTable("servers", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull(),
+export const servers = mysqlTable("servers", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
   iconUrl: text("icon_url"),
-  ownerId: uuid("owner_id")
+  bannerUrl: text("banner_url"),
+  // Server Tags: a free (non-monetized) per-server badge, opt-in per member via users.showcasedServerId.
+  tag: varchar("tag", { length: 4 }),
+  tagIconUrl: text("tag_icon_url"),
+  tagColor: int("tag_color"),
+  ownerId: varchar("owner_id", { length: 36 })
     .notNull()
     .references(() => users.id),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const serverMembers = pgTable(
+export const serverMembers = mysqlTable(
   "server_members",
   {
-    serverId: uuid("server_id")
+    serverId: varchar("server_id", { length: 36 })
       .notNull()
       .references(() => servers.id, { onDelete: "cascade" }),
-    userId: uuid("user_id")
+    userId: varchar("user_id", { length: 36 })
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    nickname: text("nickname"),
-    joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
+    nickname: varchar("nickname", { length: 64 }),
+    joinedAt: timestamp("joined_at").notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.serverId, t.userId] })],
 );
 
-export const invites = pgTable("invites", {
-  code: text("code").primaryKey(),
-  serverId: uuid("server_id")
+export const invites = mysqlTable("invites", {
+  code: varchar("code", { length: 32 }).primaryKey(),
+  serverId: varchar("server_id", { length: 36 })
     .notNull()
     .references(() => servers.id, { onDelete: "cascade" }),
-  createdBy: uuid("created_by")
+  createdBy: varchar("created_by", { length: 36 })
     .notNull()
     .references(() => users.id),
-  expiresAt: timestamp("expires_at", { withTimezone: true }),
-  maxUses: integer("max_uses"),
-  uses: integer("uses").notNull().default(0),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at"),
+  maxUses: int("max_uses"),
+  uses: int("uses").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });

@@ -13,6 +13,7 @@ import roleRoutes from "./modules/roles/routes.js";
 import channelRoutes from "./modules/channels/routes.js";
 import messageRoutes from "./modules/messages/routes.js";
 import dmRoutes from "./modules/dms/routes.js";
+import privacyRoutes from "./modules/privacy/routes.js";
 import gatewayPlugin from "./gateway/router.js";
 
 export async function buildApp() {
@@ -53,6 +54,7 @@ export async function buildApp() {
       await api.register(channelRoutes);
       await api.register(messageRoutes);
       await api.register(dmRoutes, { prefix: "/dms" });
+      await api.register(privacyRoutes, { prefix: "/privacy" });
     },
     { prefix: "/api/v1" },
   );

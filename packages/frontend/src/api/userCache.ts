@@ -9,6 +9,12 @@ export function getCachedUser(id: string): User | undefined {
   return cache.get(id);
 }
 
+/** Called when a USER_UPDATE dispatch arrives - keeps already-rendered names/tags live. */
+export function setCachedUser(user: User): void {
+  cache.set(user.id, user);
+  for (const l of listeners) l();
+}
+
 export function subscribeUserCache(listener: () => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);

@@ -1,9 +1,20 @@
 import { z } from "zod";
 
+// Discord-style Server Tag: short alphanumeric badge, free for every server (no monetization gate).
+export const ServerTagSchema = z
+  .string()
+  .min(1)
+  .max(4)
+  .regex(/^[A-Za-z0-9]+$/, "1-4 alphanumeric characters");
+
 export const ServerSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1).max(100),
   iconUrl: z.string().url().nullable(),
+  bannerUrl: z.string().url().nullable(),
+  tag: ServerTagSchema.nullable(),
+  tagIconUrl: z.string().url().nullable(),
+  tagColor: z.number().int().nullable(),
   ownerId: z.string().uuid(),
   createdAt: z.string().datetime(),
 });
@@ -27,6 +38,10 @@ export type CreateServerInput = z.infer<typeof CreateServerInputSchema>;
 export const UpdateServerInputSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   iconUrl: z.string().url().nullable().optional(),
+  bannerUrl: z.string().url().nullable().optional(),
+  tag: ServerTagSchema.nullable().optional(),
+  tagIconUrl: z.string().url().nullable().optional(),
+  tagColor: z.number().int().nullable().optional(),
 });
 export type UpdateServerInput = z.infer<typeof UpdateServerInputSchema>;
 

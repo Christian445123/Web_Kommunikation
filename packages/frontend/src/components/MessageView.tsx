@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMessagesStore } from "../store/messages.js";
 import { useAuthStore } from "../store/auth.js";
 import { useUser } from "../hooks/useUser.js";
+import { ServerTagBadge } from "./ServerTagBadge.js";
 
 interface Props {
   channelId: string | null;
@@ -9,7 +10,12 @@ interface Props {
 
 function MessageAuthor({ authorId }: { authorId: string }) {
   const user = useUser(authorId);
-  return <span className="message-author">{user?.displayName ?? "…"}</span>;
+  return (
+    <span className="message-author">
+      {user?.displayName ?? "…"}
+      <ServerTagBadge showcasedServerId={user?.showcasedServerId} />
+    </span>
+  );
 }
 
 function TypingIndicator({ channelId }: { channelId: string }) {

@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import type { Role, Server, ServerMember } from "@nythera/shared";
-import { serversApi } from "../api/resources.js";
+import type { CreateRoleInput, Role, Server, ServerMember, UpdateRoleInput, UpdateServerInput } from "@nythera/shared";
+import { rolesApi, serversApi } from "../api/resources.js";
 import { gatewayClient } from "../ws/gatewayClient.js";
 import { useAuthStore } from "./auth.js";
 
@@ -14,6 +14,10 @@ interface ServersState {
   loadMembersAndRoles: (serverId: string) => Promise<void>;
   createServer: (name: string) => Promise<Server>;
   joinServer: (code: string) => Promise<Server>;
+  updateServer: (serverId: string, input: UpdateServerInput) => Promise<Server>;
+  createRole: (serverId: string, input: CreateRoleInput) => Promise<Role>;
+  updateRole: (serverId: string, roleId: string, input: UpdateRoleInput) => Promise<Role>;
+  deleteRole: (serverId: string, roleId: string) => Promise<void>;
 }
 
 export const useServersStore = create<ServersState>((set) => ({
@@ -47,6 +51,37 @@ export const useServersStore = create<ServersState>((set) => ({
     const server = await serversApi.join(code);
     set((state) => (state.servers.some((s) => s.id === server.id) ? state : { servers: [...state.servers, server] }));
     return server;
+  },
+
+  updateServer: async (serverId, input) => {
+    const server = await serversApi.update(serverId, input);
+    set((state) => ({ servers: state.servers.map((s) => (s.id === server.id ? server : s)) }));
+    return server;
+  },
+
+  createRole: async (serverId, input) => {
+    const role = await rolesApi.create(serverId, input);
+    set((state) => {
+      const existing = state.rolesByServer[serverId] ?? [];
+      if (existing.some((r) => r.id === role.id)) return state;
+      return { rolesByServer: { ...state.rolesByServer, [serverId]: [...existing, role] } };
+    });
+    return role;
+  },
+
+  updateRole: async (serverId, roleId, input) => {
+    const role = await rolesApi.update(serverId, roleId, input);
+    set((state) => ({
+      rolesByServer: { ...state.rolesByServer, [serverId]: (state.rolesByServer[serverId] ?? []).map((r) => (r.id === role.id ? role : r)) },
+    }));
+    return role;
+  },
+
+  deleteRole: async (serverId, roleId) => {
+    await rolesApi.delete(serverId, roleId);
+    set((state) => ({
+      rolesByServer: { ...state.rolesByServer, [serverId]: (state.rolesByServer[serverId] ?? []).filter((r) => r.id !== roleId) },
+    }));
   },
 }));
 
@@ -92,7 +127,11 @@ gatewayClient.on("SERVER_MEMBER_REMOVE", ({ serverId, userId }) => {
 });
 
 gatewayClient.on("ROLE_CREATE", ({ serverId, role }) => {
-  useServersStore.setState((state) => ({ rolesByServer: { ...state.rolesByServer, [serverId]: [...(state.rolesByServer[serverId] ?? []), role] } }));
+  useServersStore.setState((state) => {
+    const existing = state.rolesByServer[serverId] ?? [];
+    if (existing.some((r) => r.id === role.id)) return state;
+    return { rolesByServer: { ...state.rolesByServer, [serverId]: [...existing, role] } };
+  });
 });
 
 gatewayClient.on("ROLE_UPDATE", ({ serverId, role }) => {

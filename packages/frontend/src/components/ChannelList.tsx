@@ -8,9 +8,11 @@ interface Props {
   activeServerId: string | null;
   activeChannelId: string | null;
   onSelectChannel: (id: string) => void;
+  onOpenServerSettings: (serverId: string) => void;
+  onOpenAccountSettings: () => void;
 }
 
-export function ChannelList({ activeServerId, activeChannelId, onSelectChannel }: Props) {
+export function ChannelList({ activeServerId, activeChannelId, onSelectChannel, onOpenServerSettings, onOpenAccountSettings }: Props) {
   const servers = useServersStore((s) => s.servers);
   const loadMembersAndRoles = useServersStore((s) => s.loadMembersAndRoles);
   const channelsByServer = useChannelsStore((s) => s.channelsByServer);
@@ -61,7 +63,14 @@ export function ChannelList({ activeServerId, activeChannelId, onSelectChannel }
 
   return (
     <div className="channel-sidebar">
-      <div className="channel-sidebar-header">{activeServerId ? (server?.name ?? "Server") : "Direktnachrichten"}</div>
+      <div className="channel-sidebar-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span>{activeServerId ? (server?.name ?? "Server") : "Direktnachrichten"}</span>
+        {activeServerId && (
+          <button className="icon-button" title="Server-Einstellungen" onClick={() => onOpenServerSettings(activeServerId)}>
+            ⚙
+          </button>
+        )}
+      </div>
       <div className="channel-list">
         {activeServerId ? (
           <>
@@ -105,6 +114,9 @@ export function ChannelList({ activeServerId, activeChannelId, onSelectChannel }
             onClick={() => user && navigator.clipboard.writeText(user.id)}
           >
             ⧉
+          </button>
+          <button className="icon-button" title="Mein Konto" onClick={onOpenAccountSettings}>
+            ⚙
           </button>
           <button className="icon-button" title="Abmelden" onClick={() => logout()}>
             ⏻

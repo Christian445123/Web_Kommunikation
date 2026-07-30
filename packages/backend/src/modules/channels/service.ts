@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { asc, eq } from "drizzle-orm";
 import type { Channel, CreateChannelInput, UpdateChannelInput } from "@nythera/shared";
 import { db } from "../../db/client.js";
@@ -34,31 +35,41 @@ export async function createChannel(serverId: string, input: CreateChannelInput)
   const existing = await db.select({ position: channels.position }).from(channels).where(eq(channels.serverId, serverId)).orderBy(asc(channels.position));
   const nextPosition = existing.length > 0 ? Math.max(...existing.map((c) => c.position)) + 1 : 0;
 
-  const [row] = await db
-    .insert(channels)
-    .values({
-      serverId,
-      name: input.name,
-      type: input.type,
-      topic: input.topic ?? null,
-      position: nextPosition,
-    })
-    .returning();
-  return mapChannel(row!);
+  const id = randomUUID();
+  const createdAt = new Date();
+  await db.insert(channels).values({
+    id,
+    serverId,
+    name: input.name,
+    type: input.type,
+    topic: input.topic ?? null,
+    position: nextPosition,
+    createdAt,
+  });
+
+  return mapChannel({
+    id,
+    serverId,
+    name: input.name,
+    type: input.type,
+    topic: input.topic ?? null,
+    position: nextPosition,
+    isEncrypted: false,
+    createdAt,
+  });
 }
 
 export async function updateChannel(channelId: string, input: UpdateChannelInput): Promise<Channel> {
-  const [row] = await db
+  await db
     .update(channels)
     .set({
       ...(input.name !== undefined && { name: input.name }),
       ...(input.topic !== undefined && { topic: input.topic }),
       ...(input.position !== undefined && { position: input.position }),
     })
-    .where(eq(channels.id, channelId))
-    .returning();
-  if (!row) throw NotFound("Channel not found");
-  return mapChannel(row);
+    .where(eq(channels.id, channelId));
+
+  return mapChannel(await getChannelOrThrow(channelId));
 }
 
 export async function deleteChannel(channelId: string): Promise<void> {

@@ -2,6 +2,8 @@ import type { FastifyPluginAsync } from "fastify";
 import type { WebSocket } from "ws";
 import { ClientFrameSchema, Permission, type ServerFrame } from "@nythera/shared";
 import { verifyAccessToken } from "../lib/jwt.js";
+import { BOT_TOKEN_PREFIX } from "../lib/crypto.js";
+import { getBotByToken } from "../lib/botAuth.js";
 import { addConnection, isOnline, removeConnection } from "./connectionRegistry.js";
 import { handleConnect, handleDisconnect } from "./presence.js";
 import { broadcastToChannel } from "./broadcast.js";
@@ -51,12 +53,23 @@ const gatewayPlugin: FastifyPluginAsync = async (app) => {
       if (frame.op === "IDENTIFY") {
         if (identified) return;
         let payloadUserId: string;
-        try {
-          payloadUserId = verifyAccessToken(frame.token).sub;
-        } catch {
-          send(socket, { op: "ERROR", d: { message: "Invalid or expired token" } });
-          socket.close();
-          return;
+
+        if (frame.token.startsWith(BOT_TOKEN_PREFIX)) {
+          const bot = await getBotByToken(frame.token);
+          if (!bot) {
+            send(socket, { op: "ERROR", d: { message: "Invalid or disabled bot token" } });
+            socket.close();
+            return;
+          }
+          payloadUserId = bot.botUserId;
+        } else {
+          try {
+            payloadUserId = verifyAccessToken(frame.token).sub;
+          } catch {
+            send(socket, { op: "ERROR", d: { message: "Invalid or expired token" } });
+            socket.close();
+            return;
+          }
         }
         clearTimeout(identifyTimer);
         identified = true;

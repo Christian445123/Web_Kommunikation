@@ -27,3 +27,10 @@ export function hashToken(token: string): string {
 export function generateInviteCode(): string {
   return randomBytes(6).toString("base64url");
 }
+
+/** Prefix lets plugins/auth.ts and the gateway IDENTIFY handler tell bot tokens from user JWTs. */
+export const BOT_TOKEN_PREFIX = "nyth_bot_";
+
+export function generateBotToken(): string {
+  return `${BOT_TOKEN_PREFIX}${randomBytes(32).toString("base64url")}`;
+}

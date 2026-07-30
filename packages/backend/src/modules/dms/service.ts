@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import type { Channel } from "@nythera/shared";
 import { db } from "../../db/client.js";
@@ -31,12 +32,23 @@ export async function getOrCreateDm(userId: string, otherUserId: string): Promis
   const existing = await findExisting1to1Dm(userId, otherUserId);
   if (existing) return existing;
 
-  const [channel] = await db.insert(channels).values({ serverId: null, type: "dm", name: null, position: 0 }).returning();
+  const channelId = randomUUID();
+  const createdAt = new Date();
+  await db.insert(channels).values({ id: channelId, serverId: null, type: "dm", name: null, position: 0, createdAt });
   await db.insert(dmParticipants).values([
-    { channelId: channel!.id, userId },
-    { channelId: channel!.id, userId: otherUserId },
+    { channelId, userId },
+    { channelId, userId: otherUserId },
   ]);
-  return mapChannel(channel!);
+  return mapChannel({
+    id: channelId,
+    serverId: null,
+    type: "dm",
+    name: null,
+    topic: null,
+    position: 0,
+    isEncrypted: false,
+    createdAt,
+  });
 }
 
 export async function listMyDms(userId: string): Promise<Channel[]> {

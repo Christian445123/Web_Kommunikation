@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { and, desc, eq, isNull, lt } from "drizzle-orm";
 import type { Message, MessagePageQuery } from "@nythera/shared";
 import { db } from "../../db/client.js";
@@ -42,11 +43,21 @@ export async function listChannelMessages(channelId: string, query: MessagePageQ
 }
 
 export async function createMessage(channelId: string, authorId: string, content: string, replyToId?: string | null): Promise<Message> {
-  const [row] = await db
-    .insert(messages)
-    .values({ channelId, authorId, content, replyToId: replyToId ?? null })
-    .returning();
-  return mapMessage(row!);
+  const id = randomUUID();
+  const createdAt = new Date();
+  await db.insert(messages).values({ id, channelId, authorId, content, replyToId: replyToId ?? null, createdAt });
+  return mapMessage({
+    id,
+    channelId,
+    authorId,
+    content,
+    ciphertext: null,
+    ratchetMeta: null,
+    replyToId: replyToId ?? null,
+    editedAt: null,
+    deletedAt: null,
+    createdAt,
+  });
 }
 
 export async function updateMessage(messageId: string, authorId: string, content: string): Promise<Message> {
@@ -54,7 +65,8 @@ export async function updateMessage(messageId: string, authorId: string, content
   if (!existing || existing.deletedAt) throw NotFound("Message not found");
   if (existing.authorId !== authorId) throw Forbidden("Cannot edit another user's message");
 
-  const [row] = await db.update(messages).set({ content, editedAt: new Date() }).where(eq(messages.id, messageId)).returning();
+  await db.update(messages).set({ content, editedAt: new Date() }).where(eq(messages.id, messageId));
+  const [row] = await db.select().from(messages).where(eq(messages.id, messageId)).limit(1);
   return mapMessage(row!);
 }
 

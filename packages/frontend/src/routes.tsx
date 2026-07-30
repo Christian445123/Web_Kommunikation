@@ -4,6 +4,8 @@ import { useAuthStore } from "./store/auth.js";
 import { Login } from "./pages/Login.js";
 import { Register } from "./pages/Register.js";
 import { AppShell } from "./pages/AppShell.js";
+import { PrivacyPolicy } from "./pages/PrivacyPolicy.js";
+import { TermsOfService } from "./pages/TermsOfService.js";
 
 export function AppRoutes() {
   const status = useAuthStore((s) => s.status);
@@ -23,6 +25,8 @@ export function AppRoutes() {
     <Routes>
       <Route path="/login" element={status === "authenticated" ? <Navigate to="/" replace /> : <Login />} />
       <Route path="/register" element={status === "authenticated" ? <Navigate to="/" replace /> : <Register />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/terms" element={<TermsOfService />} />
       <Route path="/" element={status === "authenticated" ? <AppShell /> : <Navigate to="/login" replace />} />
     </Routes>
   );

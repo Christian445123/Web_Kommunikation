@@ -1,6 +1,7 @@
 import { useServersStore } from "../store/servers.js";
 import { usePresenceStore } from "../store/presence.js";
 import { useUser } from "../hooks/useUser.js";
+import { ServerTagBadge } from "./ServerTagBadge.js";
 
 interface Props {
   serverId: string;
@@ -13,6 +14,7 @@ function MemberRow({ userId }: { userId: string }) {
     <div className="member-row">
       <div className={`presence-dot ${status === "online" ? "online" : ""}`} />
       <span>{user?.displayName ?? userId.slice(0, 8)}</span>
+      <ServerTagBadge showcasedServerId={user?.showcasedServerId} />
     </div>
   );
 }

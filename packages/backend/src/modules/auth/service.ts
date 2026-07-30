@@ -1,7 +1,8 @@
+import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import type { RegisterInput, LoginInput } from "@nythera/shared";
 import { db } from "../../db/client.js";
-import { sessions, users } from "../../db/schema/index.js";
+import { consentRecords, sessions, users } from "../../db/schema/index.js";
 import { hashPassword, verifyPassword, generateRefreshToken, hashToken } from "../../lib/crypto.js";
 import { signAccessToken } from "../../lib/jwt.js";
 import { parseDurationMs } from "../../lib/duration.js";
@@ -17,21 +18,20 @@ export interface AuthResult {
 
 async function issueSession(userId: string, deviceLabel?: string): Promise<{ sessionId: string; accessToken: string; refreshToken: string }> {
   const refreshToken = generateRefreshToken();
-  const [session] = await db
-    .insert(sessions)
-    .values({
-      userId,
-      refreshTokenHash: hashToken(refreshToken),
-      deviceLabel: deviceLabel ?? null,
-      expiresAt: new Date(Date.now() + parseDurationMs(env.JWT_REFRESH_TTL)),
-    })
-    .returning({ id: sessions.id });
+  const sessionId = randomUUID();
+  await db.insert(sessions).values({
+    id: sessionId,
+    userId,
+    refreshTokenHash: hashToken(refreshToken),
+    deviceLabel: deviceLabel ?? null,
+    expiresAt: new Date(Date.now() + parseDurationMs(env.JWT_REFRESH_TTL)),
+  });
 
-  const accessToken = signAccessToken({ sub: userId, sid: session!.id });
-  return { sessionId: session!.id, accessToken, refreshToken };
+  const accessToken = signAccessToken({ sub: userId, sid: sessionId });
+  return { sessionId, accessToken, refreshToken };
 }
 
-export async function register(input: RegisterInput, deviceLabel?: string): Promise<AuthResult> {
+export async function register(input: RegisterInput, deviceLabel?: string, ipAddress?: string): Promise<AuthResult> {
   const existing = await db
     .select({ id: users.id })
     .from(users)
@@ -43,18 +43,43 @@ export async function register(input: RegisterInput, deviceLabel?: string): Prom
   if (existingEmail.length > 0) throw Conflict("Email already registered");
 
   const passwordHash = await hashPassword(input.password);
-  const [row] = await db
-    .insert(users)
-    .values({
+  const userId = randomUUID();
+  const createdAt = new Date();
+
+  await db.transaction(async (tx) => {
+    await tx.insert(users).values({
+      id: userId,
       username: input.username,
       displayName: input.displayName,
       email: input.email,
       passwordHash,
-    })
-    .returning();
+      createdAt,
+    });
 
-  const { accessToken, refreshToken } = await issueSession(row!.id, deviceLabel);
-  return { user: mapUser(row!), accessToken, refreshToken };
+    // DSGVO Art. 7: record exactly which policy versions were accepted, and when.
+    await tx.insert(consentRecords).values([
+      { id: randomUUID(), userId, policyType: "terms", version: input.acceptedTermsVersion, ipAddress: ipAddress ?? null },
+      { id: randomUUID(), userId, policyType: "privacy", version: input.acceptedPrivacyVersion, ipAddress: ipAddress ?? null },
+    ]);
+  });
+
+  const { accessToken, refreshToken } = await issueSession(userId, deviceLabel);
+  return {
+    user: mapUser({
+      id: userId,
+      username: input.username,
+      displayName: input.displayName,
+      email: input.email,
+      passwordHash,
+      avatarUrl: null,
+      isBot: false,
+      showcasedServerId: null,
+      deletedAt: null,
+      createdAt,
+    }),
+    accessToken,
+    refreshToken,
+  };
 }
 
 export async function login(input: LoginInput, deviceLabel?: string): Promise<AuthResult> {

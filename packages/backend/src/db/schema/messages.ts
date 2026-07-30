@@ -1,26 +1,26 @@
-import { pgTable, uuid, text, timestamp, jsonb, index, type AnyPgColumn } from "drizzle-orm/pg-core";
+import { mysqlTable, varchar, text, timestamp, json, index, type AnyMySqlColumn } from "drizzle-orm/mysql-core";
 import { channels } from "./channels.js";
 import { users } from "./users.js";
-import { bytea } from "../customTypes.js";
+import { blob } from "../customTypes.js";
 
-export const messages = pgTable(
+export const messages = mysqlTable(
   "messages",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    channelId: uuid("channel_id")
+    id: varchar("id", { length: 36 }).primaryKey(),
+    channelId: varchar("channel_id", { length: 36 })
       .notNull()
       .references(() => channels.id, { onDelete: "cascade" }),
-    authorId: uuid("author_id")
+    authorId: varchar("author_id", { length: 36 })
       .notNull()
       .references(() => users.id),
     // Phase 1: plaintext. Phase 2: null when channel.isEncrypted, ciphertext used instead.
     content: text("content"),
-    ciphertext: bytea("ciphertext"),
-    ratchetMeta: jsonb("ratchet_meta"),
-    replyToId: uuid("reply_to_id").references((): AnyPgColumn => messages.id),
-    editedAt: timestamp("edited_at", { withTimezone: true }),
-    deletedAt: timestamp("deleted_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    ciphertext: blob("ciphertext"),
+    ratchetMeta: json("ratchet_meta"),
+    replyToId: varchar("reply_to_id", { length: 36 }).references((): AnyMySqlColumn => messages.id),
+    editedAt: timestamp("edited_at"),
+    deletedAt: timestamp("deleted_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => [index("messages_channel_created_idx").on(t.channelId, t.createdAt)],
 );

@@ -1,12 +1,12 @@
-import { customType } from "drizzle-orm/pg-core";
+import { customType } from "drizzle-orm/mysql-core";
 
 /**
- * Raw bytes column. Used in Phase 1 only as forward-compatible, unused
- * columns (message ciphertext, future prekeys) so Phase 2 doesn't
- * require a schema migration to add them.
+ * Raw bytes column (MySQL LONGBLOB). Used in Phase 1 only as a forward-compatible, unused
+ * column (message ciphertext for the future E2E-encryption phase) so that phase doesn't
+ * require a schema migration to add it.
  */
-export const bytea = customType<{ data: Buffer }>({
+export const blob = customType<{ data: Buffer }>({
   dataType() {
-    return "bytea";
+    return "longblob";
   },
 });

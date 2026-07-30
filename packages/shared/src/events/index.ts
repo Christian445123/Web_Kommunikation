@@ -78,6 +78,7 @@ export interface DispatchPayloadMap {
   ROLE_CREATE: { serverId: string; role: Role };
   ROLE_UPDATE: { serverId: string; role: Role };
   ROLE_DELETE: { serverId: string; roleId: string };
+  USER_UPDATE: { user: User };
 }
 
 export type DispatchEventType = keyof DispatchPayloadMap;

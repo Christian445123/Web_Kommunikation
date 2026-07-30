@@ -1,8 +1,9 @@
+import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import type { CreateServerInput, Invite, Server, ServerMember, UpdateServerInput } from "@nythera/shared";
 import { DEFAULT_EVERYONE_PERMISSIONS } from "@nythera/shared";
 import { db } from "../../db/client.js";
-import { channels, invites, memberRoles, roles, serverMembers, servers } from "../../db/schema/index.js";
+import { channels, invites, memberRoles, roles, serverMembers, servers, users } from "../../db/schema/index.js";
 import { generateInviteCode } from "../../lib/crypto.js";
 import { Conflict, Forbidden, NotFound } from "../../lib/errors.js";
 
@@ -13,6 +14,10 @@ export function mapServer(row: ServerRow): Server {
     id: row.id,
     name: row.name,
     iconUrl: row.iconUrl,
+    bannerUrl: row.bannerUrl,
+    tag: row.tag,
+    tagIconUrl: row.tagIconUrl,
+    tagColor: row.tagColor,
     ownerId: row.ownerId,
     createdAt: row.createdAt.toISOString(),
   };
@@ -34,15 +39,15 @@ export async function listMemberServers(userId: string): Promise<Server[]> {
 }
 
 export async function createServer(ownerId: string, input: CreateServerInput): Promise<Server> {
-  const [server] = await db
-    .insert(servers)
-    .values({ name: input.name, iconUrl: input.iconUrl ?? null, ownerId })
-    .returning();
+  const serverId = randomUUID();
+  const createdAt = new Date();
 
-  await db.insert(serverMembers).values({ serverId: server!.id, userId: ownerId });
+  await db.insert(servers).values({ id: serverId, name: input.name, iconUrl: input.iconUrl ?? null, ownerId, createdAt });
+  await db.insert(serverMembers).values({ serverId, userId: ownerId });
 
   await db.insert(roles).values({
-    serverId: server!.id,
+    id: randomUUID(),
+    serverId,
     name: "@everyone",
     position: 0,
     permissions: DEFAULT_EVERYONE_PERMISSIONS,
@@ -50,23 +55,39 @@ export async function createServer(ownerId: string, input: CreateServerInput): P
   });
 
   await db.insert(channels).values({
-    serverId: server!.id,
+    id: randomUUID(),
+    serverId,
     name: "general",
     type: "text",
     position: 0,
   });
 
-  return mapServer(server!);
+  return mapServer({
+    id: serverId,
+    name: input.name,
+    iconUrl: input.iconUrl ?? null,
+    bannerUrl: null,
+    tag: null,
+    tagIconUrl: null,
+    tagColor: null,
+    ownerId,
+    createdAt,
+  });
 }
 
 export async function updateServer(serverId: string, input: UpdateServerInput): Promise<Server> {
-  const [row] = await db
+  await db
     .update(servers)
-    .set({ ...(input.name !== undefined && { name: input.name }), ...(input.iconUrl !== undefined && { iconUrl: input.iconUrl }) })
-    .where(eq(servers.id, serverId))
-    .returning();
-  if (!row) throw NotFound("Server not found");
-  return mapServer(row);
+    .set({
+      ...(input.name !== undefined && { name: input.name }),
+      ...(input.iconUrl !== undefined && { iconUrl: input.iconUrl }),
+      ...(input.bannerUrl !== undefined && { bannerUrl: input.bannerUrl }),
+      ...(input.tag !== undefined && { tag: input.tag }),
+      ...(input.tagIconUrl !== undefined && { tagIconUrl: input.tagIconUrl }),
+      ...(input.tagColor !== undefined && { tagColor: input.tagColor }),
+    })
+    .where(eq(servers.id, serverId));
+  return mapServer(await getServerOrThrow(serverId));
 }
 
 export async function deleteServer(serverId: string, requesterId: string): Promise<void> {
@@ -76,17 +97,16 @@ export async function deleteServer(serverId: string, requesterId: string): Promi
 }
 
 export async function createInvite(serverId: string, createdBy: string): Promise<Invite> {
-  const [row] = await db
-    .insert(invites)
-    .values({ code: generateInviteCode(), serverId, createdBy })
-    .returning();
+  const code = generateInviteCode();
+  const createdAt = new Date();
+  await db.insert(invites).values({ code, serverId, createdBy, createdAt });
   return {
-    code: row!.code,
-    serverId: row!.serverId,
-    createdBy: row!.createdBy,
-    expiresAt: row!.expiresAt?.toISOString() ?? null,
-    maxUses: row!.maxUses,
-    uses: row!.uses,
+    code,
+    serverId,
+    createdBy,
+    expiresAt: null,
+    maxUses: null,
+    uses: 0,
   };
 }
 
@@ -146,4 +166,7 @@ export async function kickMember(serverId: string, userId: string): Promise<void
   const server = await getServerOrThrow(serverId);
   if (server.ownerId === userId) throw Conflict("Cannot kick the server owner");
   await db.delete(serverMembers).where(and(eq(serverMembers.serverId, serverId), eq(serverMembers.userId, userId)));
+  // A kicked member can no longer showcase this server's tag - the FK's ON DELETE SET NULL
+  // only covers server deletion, not membership removal, so clear it explicitly here.
+  await db.update(users).set({ showcasedServerId: null }).where(and(eq(users.id, userId), eq(users.showcasedServerId, serverId)));
 }

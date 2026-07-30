@@ -24,7 +24,7 @@ function clearRefreshCookie(reply: FastifyReply) {
 const authRoutes: FastifyPluginAsync = async (app) => {
   app.post("/register", async (request, reply) => {
     const input = RegisterInputSchema.parse(request.body);
-    const result = await register(input, request.headers["user-agent"]);
+    const result = await register(input, request.headers["user-agent"], request.ip);
     setRefreshCookie(reply, result.refreshToken);
     return { user: result.user, accessToken: result.accessToken };
   });
