@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { applyOverwrites, combinePermissions, hasPermission, Permission, type PermissionFlag } from "@nythera/shared";
 import { db } from "../db/client.js";
-import { channelPermissionOverwrites, channels, memberRoles, roles, serverMembers } from "../db/schema/index.js";
+import { channelPermissionOverwrites, channels, dmParticipants, memberRoles, roles, serverMembers } from "../db/schema/index.js";
 import { Forbidden, NotFound } from "./errors.js";
 
 export async function isServerMember(serverId: string, userId: string): Promise<boolean> {
@@ -36,8 +36,13 @@ export async function getChannelPermissions(channelId: string, userId: string): 
   if (!channel) throw NotFound("Channel not found");
 
   if (channel.type === "dm" || channel.type === "group_dm") {
-    // DMs have no role system - membership itself grants full access, checked separately.
-    return Permission.VIEW_CHANNEL | Permission.SEND_MESSAGES;
+    // DMs have no role system - being a participant grants full access, otherwise none.
+    const [participant] = await db
+      .select({ userId: dmParticipants.userId })
+      .from(dmParticipants)
+      .where(and(eq(dmParticipants.channelId, channelId), eq(dmParticipants.userId, userId)))
+      .limit(1);
+    return participant ? Permission.VIEW_CHANNEL | Permission.SEND_MESSAGES : 0n;
   }
   if (!channel.serverId) return 0n;
 
