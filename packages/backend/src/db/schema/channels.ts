@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { mysqlTable, varchar, text, int, bigint, boolean, timestamp, primaryKey, mysqlEnum } from "drizzle-orm/mysql-core";
 import { servers } from "./servers.js";
 import { users } from "./users.js";
@@ -23,8 +24,10 @@ export const channelPermissionOverwrites = mysqlTable(
       .references(() => channels.id, { onDelete: "cascade" }),
     targetType: varchar("target_type", { length: 8 }).notNull(), // 'role' | 'user'
     targetId: varchar("target_id", { length: 36 }).notNull(),
-    allow: bigint("allow", { mode: "bigint" }).notNull().default(0n),
-    deny: bigint("deny", { mode: "bigint" }).notNull().default(0n),
+    // sql`` defaults, not JS bigint literals - see roles.ts for why (drizzle-kit's snapshot
+    // differ can't JSON.stringify a raw BigInt).
+    allow: bigint("allow", { mode: "bigint" }).notNull().default(sql`0`),
+    deny: bigint("deny", { mode: "bigint" }).notNull().default(sql`0`),
   },
   (t) => ({ pk: primaryKey({ columns: [t.channelId, t.targetType, t.targetId] }) }),
 );

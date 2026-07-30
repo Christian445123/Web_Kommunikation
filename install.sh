@@ -32,6 +32,17 @@ fail()  { color "31" "FAIL $1"; exit 1; }
 cd "$APP_DIR"
 
 # ---------------------------------------------------------------------------
+# 0. Fix "sudo: unable to resolve host X" - happens when the machine's hostname has no
+#    matching /etc/hosts entry (common on freshly provisioned VPS/CloudPanel boxes). Harmless
+#    to sudo itself (commands still run) but noisy, and some PAM modules complain loudly.
+# ---------------------------------------------------------------------------
+CURRENT_HOSTNAME="$(hostname)"
+if ! getent hosts "$CURRENT_HOSTNAME" >/dev/null 2>&1; then
+  info "Adding '${CURRENT_HOSTNAME}' to /etc/hosts (was unresolvable, causing 'sudo: unable to resolve host' warnings)"
+  echo "127.0.1.1 ${CURRENT_HOSTNAME}" | sudo tee -a /etc/hosts >/dev/null
+fi
+
+# ---------------------------------------------------------------------------
 # 1. Node.js (via NodeSource) + corepack/pnpm
 # ---------------------------------------------------------------------------
 if ! command -v node >/dev/null 2>&1 || [ "$(node -v | sed 's/^v//;s/\..*//')" -lt "$NODE_MAJOR" ]; then
@@ -133,12 +144,24 @@ EOF
 sudo systemctl daemon-reload
 sudo systemctl enable "${SERVICE_NAME}"
 sudo systemctl restart "${SERVICE_NAME}"
-sleep 2
 
-if systemctl is-active --quiet "${SERVICE_NAME}"; then
+# Give Node a moment to boot and connect to MySQL before checking - retry briefly instead of
+# a single fixed sleep, so a slightly slower boot doesn't produce a false failure.
+STARTED=false
+for _ in 1 2 3 4 5; do
+  sleep 1
+  if systemctl is-active --quiet "${SERVICE_NAME}"; then
+    STARTED=true
+    break
+  fi
+done
+
+if [ "$STARTED" = true ]; then
   ok "${SERVICE_NAME} is running"
 else
-  fail "${SERVICE_NAME} failed to start - check: journalctl -u ${SERVICE_NAME} -n 100 --no-pager"
+  warn "${SERVICE_NAME} failed to start - last log lines:"
+  sudo journalctl -u "${SERVICE_NAME}" -n 60 --no-pager || true
+  fail "${SERVICE_NAME} did not become active - see the log above for the actual error"
 fi
 
 PORT_VALUE="${PORT:-4000}"

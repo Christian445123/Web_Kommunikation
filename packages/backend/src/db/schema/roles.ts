@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { mysqlTable, varchar, text, int, bigint, boolean, primaryKey, foreignKey } from "drizzle-orm/mysql-core";
 import { servers, serverMembers } from "./servers.js";
 import { botApplications } from "./bots.js";
@@ -11,7 +12,10 @@ export const roles = mysqlTable("roles", {
   color: int("color"),
   icon: text("icon"),
   position: int("position").notNull().default(0),
-  permissions: bigint("permissions", { mode: "bigint" }).notNull().default(0n),
+  // Default given as a raw SQL expression, not a JS bigint literal (0n) - drizzle-kit's
+  // snapshot differ JSON.stringifies column defaults, and JSON.stringify cannot serialize
+  // a BigInt (throws "Do not know how to serialize a BigInt"). A sql`` default sidesteps that.
+  permissions: bigint("permissions", { mode: "bigint" }).notNull().default(sql`0`),
   isDefault: boolean("is_default").notNull().default(false),
   // Set when this role was auto-created for a bot invite - see modules/bots/service.ts.
   // Read-only in the Roles UI; only changes via the bot-invite flow, not manual editing.
